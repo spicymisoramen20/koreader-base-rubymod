@@ -31,6 +31,12 @@ extern "C" {
 #include "lvdocview.h"
 #include "lvimg.h"
 
+// Furigana Tool draw-time hooks, implemented in CREngine lvtextfm.cpp.
+extern void rubyToggleSetMode(bool enabled);
+extern void rubyToggleClear();
+extern void rubyToggleSetVisible(ldomNode * ruby, bool visible);
+
+
 static void replaceColor( char * str, lUInt32 color ) {
 	// in line like "0 c #80000000",
 	// replace value of color
@@ -2934,6 +2940,94 @@ static int getWordBoxesFromPositions(lua_State *L) {
 	return 1;
 }
 
+
+// -----------------------------------------------------------------------------
+// Furigana Tool API
+// -----------------------------------------------------------------------------
+
+static ldomNode * findRubyAncestor(ldomNode * node)
+{
+    if (!node)
+        return NULL;
+
+    if (node->isEffectiveText())
+        node = node->getParentNode();
+
+    while (node) {
+        if (node->isElement() && node->getNodeName() == "ruby")
+            return node;
+        node = node->getParentNode();
+    }
+
+    return NULL;
+}
+
+static int getRubyFromPosition(lua_State *L)
+{
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    int x = luaL_checkint(L, 2);
+    int y = luaL_checkint(L, 3);
+
+    lvPoint pt(x, y);
+    ldomXPointer xp = doc->text_view->getNodeByPoint(pt, true);
+
+    if (xp.isNull())
+        return 0;
+
+    ldomNode * ruby = findRubyAncestor(xp.getNode());
+    if (!ruby)
+        return 0;
+
+    ldomXPointer ruby_xp(ruby, 0);
+
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "id");
+    lua_pushstring(L, UnicodeToLocal(ruby_xp.toString()).c_str());
+    lua_rawset(L, -3);
+
+    return 1;
+}
+
+static int setRubyToggleMode(lua_State *L)
+{
+    bool enabled = lua_toboolean(L, 2);
+    rubyToggleSetMode(enabled);
+    return 0;
+}
+
+static int clearRubyVisibilityOverrides(lua_State *L)
+{
+    rubyToggleClear();
+    return 0;
+}
+
+static int setRubyVisibilityOverride(lua_State *L)
+{
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    const char * xp_string = luaL_checkstring(L, 2);
+    bool visible = lua_toboolean(L, 3);
+
+    ldomXPointer xp = doc->dom_doc->createXPointer(lString32(xp_string));
+    if (xp.isNull()) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    ldomNode * ruby = xp.getNode();
+    if (!ruby || !ruby->isElement() || ruby->getNodeName() != "ruby") {
+        ruby = findRubyAncestor(ruby);
+    }
+
+    if (!ruby) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    rubyToggleSetVisible(ruby, visible);
+    lua_pushboolean(L, true);
+    return 1;
+}
+
 static int getNearestWordFromPosition(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
     int x = luaL_checkint(L, 2);
@@ -4712,6 +4806,10 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getWordBoxesFromPositions", getWordBoxesFromPositions},
     {"getImageDataFromPosition", getImageDataFromPosition},
     {"getNearestWordFromPosition", getNearestWordFromPosition},
+    {"getRubyFromPosition", getRubyFromPosition},
+    {"setRubyToggleMode", setRubyToggleMode},
+    {"setRubyVisibilityOverride", setRubyVisibilityOverride},
+    {"clearRubyVisibilityOverrides", clearRubyVisibilityOverrides},
     {"getDocumentFileContent", getDocumentFileContent},
     {"getTextFromXPointer", getTextFromXPointer},
     {"getHTMLFromXPointer", getHTMLFromXPointer},
