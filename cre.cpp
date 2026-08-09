@@ -2962,6 +2962,49 @@ static ldomNode * findRubyAncestor(ldomNode * node)
     return NULL;
 }
 
+// Collect a contiguous run of sibling <ruby> elements that form one visual
+// word in mono-ruby markup (each kanji wrapped separately).
+// ownItems=false: these are live DOM pointers and must not be deleted.
+static void collectContiguousRubySiblings(ldomNode * ruby, LVPtrVector<ldomNode, false> & out)
+{
+    out.clear();
+    if (!ruby || !ruby->isElement() || ruby->getNodeName() != "ruby")
+        return;
+
+    ldomNode * parent = ruby->getParentNode();
+    if (!parent) {
+        out.add(ruby);
+        return;
+    }
+
+    int index = ruby->getNodeIndex();
+    int first = index;
+    int last = index;
+    int nchildren = parent->getChildCount();
+
+    while (first > 0) {
+        ldomNode * prev = parent->getChildNode(first - 1);
+        if (!prev || !prev->isElement() || prev->getNodeName() != "ruby")
+            break;
+        first--;
+    }
+    while (last + 1 < nchildren) {
+        ldomNode * next = parent->getChildNode(last + 1);
+        if (!next || !next->isElement() || next->getNodeName() != "ruby")
+            break;
+        last++;
+    }
+
+    for (int i = first; i <= last; i++) {
+        ldomNode * child = parent->getChildNode(i);
+        if (child && child->isElement() && child->getNodeName() == "ruby")
+            out.add(child);
+    }
+
+    if (out.length() == 0)
+        out.add(ruby);
+}
+
 static int getRubyFromPosition(lua_State *L)
 {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -2972,40 +3015,33 @@ static int getRubyFromPosition(lua_State *L)
     // Match getTextFromPositions / selection hit-testing:
     // strictBounds=false + forTextSelection=true is far more reliable for
     // vertical-rl and taps that land slightly off glyph tight bounds.
-    // (Previously used getNodeByPoint(pt, true), which caused frequent misses.)
     ldomXPointer xp = doc->text_view->getNodeByPoint(pt, false, true);
 
-    if (xp.isNull()) {
-        printf("FuriganaTool: getRubyFromPosition x=%d y=%d -> no node\n", x, y);
-        fflush(stdout);
+    if (xp.isNull())
         return 0;
-    }
 
-    ldomNode * node = xp.getNode();
-    ldomNode * ruby = findRubyAncestor(node);
-    if (!ruby) {
-        lString32 name;
-        if (node) {
-            if (node->isEffectiveText())
-                node = node->getParentNode();
-            if (node && node->isElement())
-                name = node->getNodeName();
-        }
-        printf("FuriganaTool: getRubyFromPosition x=%d y=%d -> node=%s (no ruby ancestor)\n",
-               x, y, UnicodeToLocal(name).c_str());
-        fflush(stdout);
+    ldomNode * ruby = findRubyAncestor(xp.getNode());
+    if (!ruby)
         return 0;
-    }
 
-    ldomXPointer ruby_xp(ruby, 0);
-    lString32 ruby_id = ruby_xp.toString();
-    printf("FuriganaTool: getRubyFromPosition x=%d y=%d -> ruby=%s\n",
-           x, y, UnicodeToLocal(ruby_id).c_str());
-    fflush(stdout);
+    LVPtrVector<ldomNode, false> group;
+    collectContiguousRubySiblings(ruby, group);
 
-    lua_createtable(L, 0, 1);
+    ldomXPointer primary_xp(ruby, 0);
+
+    lua_createtable(L, 0, 2);
+
     lua_pushstring(L, "id");
-    lua_pushstring(L, UnicodeToLocal(ruby_id).c_str());
+    lua_pushstring(L, UnicodeToLocal(primary_xp.toString()).c_str());
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "ids");
+    lua_createtable(L, group.length(), 0);
+    for (int i = 0; i < group.length(); i++) {
+        ldomXPointer gxp(group[i], 0);
+        lua_pushstring(L, UnicodeToLocal(gxp.toString()).c_str());
+        lua_rawseti(L, -2, i + 1);
+    }
     lua_rawset(L, -3);
 
     return 1;
