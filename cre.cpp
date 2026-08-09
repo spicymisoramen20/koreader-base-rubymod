@@ -2969,20 +2969,43 @@ static int getRubyFromPosition(lua_State *L)
     int y = luaL_checkint(L, 3);
 
     lvPoint pt(x, y);
-    ldomXPointer xp = doc->text_view->getNodeByPoint(pt, true);
+    // Match getTextFromPositions / selection hit-testing:
+    // strictBounds=false + forTextSelection=true is far more reliable for
+    // vertical-rl and taps that land slightly off glyph tight bounds.
+    // (Previously used getNodeByPoint(pt, true), which caused frequent misses.)
+    ldomXPointer xp = doc->text_view->getNodeByPoint(pt, false, true);
 
-    if (xp.isNull())
+    if (xp.isNull()) {
+        printf("FuriganaTool: getRubyFromPosition x=%d y=%d -> no node\n", x, y);
+        fflush(stdout);
         return 0;
+    }
 
-    ldomNode * ruby = findRubyAncestor(xp.getNode());
-    if (!ruby)
+    ldomNode * node = xp.getNode();
+    ldomNode * ruby = findRubyAncestor(node);
+    if (!ruby) {
+        lString32 name;
+        if (node) {
+            if (node->isEffectiveText())
+                node = node->getParentNode();
+            if (node && node->isElement())
+                name = node->getNodeName();
+        }
+        printf("FuriganaTool: getRubyFromPosition x=%d y=%d -> node=%s (no ruby ancestor)\n",
+               x, y, UnicodeToLocal(name).c_str());
+        fflush(stdout);
         return 0;
+    }
 
     ldomXPointer ruby_xp(ruby, 0);
+    lString32 ruby_id = ruby_xp.toString();
+    printf("FuriganaTool: getRubyFromPosition x=%d y=%d -> ruby=%s\n",
+           x, y, UnicodeToLocal(ruby_id).c_str());
+    fflush(stdout);
 
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "id");
-    lua_pushstring(L, UnicodeToLocal(ruby_xp.toString()).c_str());
+    lua_pushstring(L, UnicodeToLocal(ruby_id).c_str());
     lua_rawset(L, -3);
 
     return 1;
