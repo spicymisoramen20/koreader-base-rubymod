@@ -31,6 +31,8 @@ extern "C" {
 #include "lvdocview.h"
 #include "lvimg.h"
 
+#include <vector>
+
 // Furigana Tool draw-time hooks, implemented in CREngine lvtextfm.cpp.
 extern void rubyToggleSetMode(bool enabled);
 extern void rubyToggleClear();
@@ -2964,8 +2966,7 @@ static ldomNode * findRubyAncestor(ldomNode * node)
 
 // Collect a contiguous run of sibling <ruby> elements that form one visual
 // word in mono-ruby markup (each kanji wrapped separately).
-// ownItems=false: these are live DOM pointers and must not be deleted.
-static void collectContiguousRubySiblings(ldomNode * ruby, LVPtrVector<ldomNode, false> & out)
+static void collectContiguousRubySiblings(ldomNode * ruby, std::vector<ldomNode *> & out)
 {
     out.clear();
     if (!ruby || !ruby->isElement() || ruby->getNodeName() != "ruby")
@@ -2973,7 +2974,7 @@ static void collectContiguousRubySiblings(ldomNode * ruby, LVPtrVector<ldomNode,
 
     ldomNode * parent = ruby->getParentNode();
     if (!parent) {
-        out.add(ruby);
+        out.push_back(ruby);
         return;
     }
 
@@ -2998,11 +2999,11 @@ static void collectContiguousRubySiblings(ldomNode * ruby, LVPtrVector<ldomNode,
     for (int i = first; i <= last; i++) {
         ldomNode * child = parent->getChildNode(i);
         if (child && child->isElement() && child->getNodeName() == "ruby")
-            out.add(child);
+            out.push_back(child);
     }
 
-    if (out.length() == 0)
-        out.add(ruby);
+    if (out.empty())
+        out.push_back(ruby);
 }
 
 static int getRubyFromPosition(lua_State *L)
@@ -3024,7 +3025,7 @@ static int getRubyFromPosition(lua_State *L)
     if (!ruby)
         return 0;
 
-    LVPtrVector<ldomNode, false> group;
+    std::vector<ldomNode *> group;
     collectContiguousRubySiblings(ruby, group);
 
     ldomXPointer primary_xp(ruby, 0);
@@ -3036,11 +3037,11 @@ static int getRubyFromPosition(lua_State *L)
     lua_rawset(L, -3);
 
     lua_pushstring(L, "ids");
-    lua_createtable(L, group.length(), 0);
-    for (int i = 0; i < group.length(); i++) {
+    lua_createtable(L, (int)group.size(), 0);
+    for (size_t i = 0; i < group.size(); i++) {
         ldomXPointer gxp(group[i], 0);
         lua_pushstring(L, UnicodeToLocal(gxp.toString()).c_str());
-        lua_rawseti(L, -2, i + 1);
+        lua_rawseti(L, -2, (int)i + 1);
     }
     lua_rawset(L, -3);
 
