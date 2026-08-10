@@ -37,7 +37,7 @@ extern "C" {
 extern void rubyToggleSetMode(bool enabled);
 extern void rubyToggleSetObscureStyle(int style);
 extern void rubyToggleSetDitherParams(int intensity);
-extern void rubyToggleSetFogParams(int falloff, int roundness, int pattern);
+extern void rubyToggleSetFogParams(int falloff, int roundness);
 extern void rubyToggleClear();
 extern void rubyToggleSetVisible(ldomNode * ruby, bool visible);
 
@@ -3102,11 +3102,7 @@ static int setRubyToggleFogParams(lua_State *L)
 {
     int falloff = luaL_checkint(L, 2);
     int roundness = luaL_checkint(L, 3);
-    // Optional 3rd arg: fog pattern (Bayer8/16, blue-noise, checker, hatch, multi4).
-    int pattern = 0;
-    if (lua_gettop(L) >= 4 && !lua_isnil(L, 4))
-        pattern = luaL_checkint(L, 4);
-    rubyToggleSetFogParams(falloff, roundness, pattern);
+    rubyToggleSetFogParams(falloff, roundness);
     return 0;
 }
 
