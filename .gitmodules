@@ -1,3 +1,5 @@
 [submodule "kpvcrlib/crengine"]
 	path = thirdparty/kpvcrlib/crengine
 	url = https://github.com/spicymisoramen20/crengine-rubymod.git
+[submodule "thirdparty/kpvcrlib/crengine"]
+	url = https://github.com/spicymisoramen20/crengine-rubymod.git

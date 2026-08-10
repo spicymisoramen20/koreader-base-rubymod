@@ -35,6 +35,7 @@ extern "C" {
 
 // Furigana Tool draw-time hooks, implemented in CREngine lvtextfm.cpp.
 extern void rubyToggleSetMode(bool enabled);
+extern void rubyToggleSetObscureStyle(int style);
 extern void rubyToggleClear();
 extern void rubyToggleSetVisible(ldomNode * ruby, bool visible);
 
@@ -3055,6 +3056,13 @@ static int setRubyToggleMode(lua_State *L)
     return 0;
 }
 
+static int setRubyToggleObscureStyle(lua_State *L)
+{
+    int style = luaL_checkint(L, 2);
+    rubyToggleSetObscureStyle(style);
+    return 0;
+}
+
 static int clearRubyVisibilityOverrides(lua_State *L)
 {
     rubyToggleClear();
@@ -4868,6 +4876,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getNearestWordFromPosition", getNearestWordFromPosition},
     {"getRubyFromPosition", getRubyFromPosition},
     {"setRubyToggleMode", setRubyToggleMode},
+    {"setRubyToggleObscureStyle", setRubyToggleObscureStyle},
     {"setRubyVisibilityOverride", setRubyVisibilityOverride},
     {"clearRubyVisibilityOverrides", clearRubyVisibilityOverrides},
     {"getDocumentFileContent", getDocumentFileContent},
