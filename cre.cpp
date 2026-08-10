@@ -39,6 +39,7 @@ extern void rubyToggleSetObscureStyle(int style);
 extern void rubyToggleSetBlurParams(int radius, int passes);
 extern void rubyToggleSetDitherParams(int intensity);
 extern void rubyToggleSetBlurDither(int mode);
+extern void rubyToggleSetFogParams(int falloff, int roundness);
 extern void rubyToggleClear();
 extern void rubyToggleSetVisible(ldomNode * ruby, bool visible);
 
@@ -3088,6 +3089,14 @@ static int setRubyToggleBlurDither(lua_State *L)
     return 0;
 }
 
+static int setRubyToggleFogParams(lua_State *L)
+{
+    int falloff = luaL_checkint(L, 2);
+    int roundness = luaL_checkint(L, 3);
+    rubyToggleSetFogParams(falloff, roundness);
+    return 0;
+}
+
 static int clearRubyVisibilityOverrides(lua_State *L)
 {
     rubyToggleClear();
@@ -4905,6 +4914,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"setRubyToggleBlurParams", setRubyToggleBlurParams},
     {"setRubyToggleDitherParams", setRubyToggleDitherParams},
     {"setRubyToggleBlurDither", setRubyToggleBlurDither},
+    {"setRubyToggleFogParams", setRubyToggleFogParams},
     {"setRubyVisibilityOverride", setRubyVisibilityOverride},
     {"clearRubyVisibilityOverrides", clearRubyVisibilityOverrides},
     {"getDocumentFileContent", getDocumentFileContent},
