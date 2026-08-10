@@ -2968,7 +2968,25 @@ static ldomNode * findRubyAncestor(ldomNode * node)
 }
 
 // Collect a contiguous run of sibling <ruby> elements that form one visual
-// word in mono-ruby markup (each kanji wrapped separately).
+// word in mono-ruby markup (each kanji wrapped separately). Whitespace-only
+// text nodes between rubies are ignored (EPUB authors often insert newlines).
+static bool isIgnorableRubyGroupSibling(ldomNode * node)
+{
+    if (!node)
+        return true;
+    if (node->isText()) {
+        lString32 t = node->getText();
+        for (int i = 0; i < t.length(); i++) {
+            lChar32 c = t[i];
+            if (!(c == ' ' || c == '\t' || c == '\r' || c == '\n'
+                    || c == 0x00A0 || c == 0x3000))
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 static void collectContiguousRubySiblings(ldomNode * ruby, std::vector<ldomNode *> & out)
 {
     out.clear();
@@ -2988,12 +3006,20 @@ static void collectContiguousRubySiblings(ldomNode * ruby, std::vector<ldomNode 
 
     while (first > 0) {
         ldomNode * prev = parent->getChildNode(first - 1);
+        if (isIgnorableRubyGroupSibling(prev)) {
+            first--;
+            continue;
+        }
         if (!prev || !prev->isElement() || prev->getNodeName() != "ruby")
             break;
         first--;
     }
     while (last + 1 < nchildren) {
         ldomNode * next = parent->getChildNode(last + 1);
+        if (isIgnorableRubyGroupSibling(next)) {
+            last++;
+            continue;
+        }
         if (!next || !next->isElement() || next->getNodeName() != "ruby")
             break;
         last++;
