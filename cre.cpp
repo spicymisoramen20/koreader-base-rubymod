@@ -36,9 +36,7 @@ extern "C" {
 // Furigana Tool draw-time hooks, implemented in CREngine lvtextfm.cpp.
 extern void rubyToggleSetMode(bool enabled);
 extern void rubyToggleSetObscureStyle(int style);
-extern void rubyToggleSetBlurParams(int radius, int passes);
 extern void rubyToggleSetDitherParams(int intensity);
-extern void rubyToggleSetBlurDither(int mode);
 extern void rubyToggleSetFogParams(int falloff, int roundness);
 extern void rubyToggleClear();
 extern void rubyToggleSetVisible(ldomNode * ruby, bool visible);
@@ -3067,25 +3065,10 @@ static int setRubyToggleObscureStyle(lua_State *L)
     return 0;
 }
 
-static int setRubyToggleBlurParams(lua_State *L)
-{
-    int radius = luaL_checkint(L, 2);
-    int passes = luaL_checkint(L, 3);
-    rubyToggleSetBlurParams(radius, passes);
-    return 0;
-}
-
 static int setRubyToggleDitherParams(lua_State *L)
 {
     int intensity = luaL_checkint(L, 2);
     rubyToggleSetDitherParams(intensity);
-    return 0;
-}
-
-static int setRubyToggleBlurDither(lua_State *L)
-{
-    int mode = luaL_checkint(L, 2);
-    rubyToggleSetBlurDither(mode);
     return 0;
 }
 
@@ -4911,9 +4894,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getRubyFromPosition", getRubyFromPosition},
     {"setRubyToggleMode", setRubyToggleMode},
     {"setRubyToggleObscureStyle", setRubyToggleObscureStyle},
-    {"setRubyToggleBlurParams", setRubyToggleBlurParams},
     {"setRubyToggleDitherParams", setRubyToggleDitherParams},
-    {"setRubyToggleBlurDither", setRubyToggleBlurDither},
     {"setRubyToggleFogParams", setRubyToggleFogParams},
     {"setRubyVisibilityOverride", setRubyVisibilityOverride},
     {"clearRubyVisibilityOverrides", clearRubyVisibilityOverrides},
