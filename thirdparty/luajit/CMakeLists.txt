@@ -100,6 +100,10 @@ if(USE_LUAJIT_LIB)
         list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${SOURCE_DIR}/src/libluajit-5.1.dll.a
             ${STAGING_DIR}/lib/libluajit-5.1.dll.a)
+        # declare_dependency(SHARED luajit) looks for libluajit.dll.a.
+        list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SOURCE_DIR}/src/libluajit-5.1.dll.a
+            ${STAGING_DIR}/lib/libluajit.dll.a)
         list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${SOURCE_DIR}/src/lua51.dll
             ${STAGING_DIR}/lib/lua51.dll)
