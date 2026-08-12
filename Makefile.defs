@@ -641,13 +641,14 @@ ifndef DARWIN
   #       (Assuming no LD_LIBRARY_PATH are set, since the search order is basically RPATH -> LD_LIBRARY_PATH -> RUNPATH).
   #       c.f., https://github.com/koreader/koreader-base/pull/1638#issuecomment-1636725691
   #       And https://bugs.launchpad.net/ubuntu/+source/eglibc/+bug/1253638/comments/5 for a nice recap.
+  # ELF-only: MinGW's ld does not understand --disable-new-dtags / -rpath $ORIGIN / -z noexecstack.
   ifndef ANDROID
+  ifndef WIN32
     LDFLAGS += -Wl,@$(abspath $(KOR_BASE)/origin.ldflags)
-  endif
-  # No code we build should need an executable stack, so disable
-  # it explicitly to avoid issues on some systems (e.g. Gentoo).
-  ifndef ANDROID
+    # No code we build should need an executable stack, so disable
+    # it explicitly to avoid issues on some systems (e.g. Gentoo).
     LDFLAGS += -Wl,-z,noexecstack
+  endif
   endif
   # In monolibtic mode on Android, we can statically link the STL.
   ifdef ANDROID
