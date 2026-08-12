@@ -83,3 +83,76 @@ index 5312058..f13e8be 100644
  #else
      struct stat fs;
      int status;
+diff --git a/willuslib/wsys.c b/willuslib/wsys.c
+index c89409b..e43810e 100644
+--- a/willuslib/wsys.c
++++ b/willuslib/wsys.c
+@@ -26,7 +26,7 @@
+ #include <string.h>
+ #include <math.h>
+ #include <locale.h>
+-#ifdef HAVE_WIN32_API
++#if defined(HAVE_WIN32_API) || defined(WIN32)
+ #include <windows.h>
+ #endif
+ #ifdef UNIX
+@@ -299,7 +299,7 @@ int wsys_wpid_status(int pid)
+     return(WPID_NO_PROCESS);
+     */
+ #else
+-#ifdef UNIX
++#if defined(UNIX) && !defined(WIN32)
+     int status;
+     status = getpgid(pid);
+     if (status < 0 && errno==ESRCH)
+@@ -322,6 +322,8 @@ void wsys_sleep(int secs)
+     {
+ #ifdef HAVE_WIN32_API
+     win_sleep(secs*1000);
++#elif defined(WIN32)
++    Sleep(secs*1000);
+ #else
+     sleep(secs);
+ #endif
+@@ -333,6 +335,8 @@ void wsys_sleep_ms(int ms)
+     {
+ #ifdef HAVE_WIN32_API
+     win_sleep(ms);
++#elif defined(WIN32)
++    Sleep(ms);
+ #else
+     usleep(ms*1000);
+ #endif
+@@ -342,7 +346,7 @@ void wsys_sleep_ms(int ms)
+ int wsys_num_cpus(void)
+ 
+     {
+-#ifdef HAVE_WIN32_API
++#if defined(HAVE_WIN32_API) || defined(WIN32)
+     SYSTEM_INFO sysinfo;
+     GetSystemInfo(&sysinfo);
+     return(sysinfo.dwNumberOfProcessors);
+@@ -411,10 +415,10 @@ int wsys_most_recent_in_path(char *exename,char *wildcard)
+ void wsys_computer_name(char *name,int maxlen)
+ 
+     {
+-#ifdef HAVE_WIN32_API
++#if defined(HAVE_WIN32_API) || defined(WIN32)
+     int n;
+     n=maxlen;
+-    GetComputerName(name,(LPDWORD)&n);
++    GetComputerNameA(name,(LPDWORD)&n);
+ #else
+     gethostname(name,maxlen);
+ #endif
+@@ -442,8 +446,8 @@ void wsys_enter_to_exit(char *mesg)
+ int wsys_filename_8dot3(char *dst,char *src,int maxlen)
+ 
+     {
+-#ifdef HAVE_WIN32_API
+-    return(GetShortPathName(src,dst,maxlen));
++#if defined(HAVE_WIN32_API) || defined(WIN32)
++    return(GetShortPathNameA(src,dst,maxlen));
+ #else
+     strncpy(dst,src,maxlen-1);
+     dst[maxlen-1]='\0';
