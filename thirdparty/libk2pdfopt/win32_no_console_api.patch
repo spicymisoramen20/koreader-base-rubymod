@@ -1,8 +1,8 @@
 diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
-index 0d5c1c5..ae069bc 100644
+index 0d5c1c5..51319a3 100644
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
-@@ -76,7 +76,10 @@ if(DISABLED_LEGACY_ENGINE)
+@@ -76,7 +76,12 @@ if(DISABLED_LEGACY_ENGINE)
      target_compile_definitions(k2pdfopt PRIVATE DISABLED_LEGACY_ENGINE)
  endif()
  target_include_directories(k2pdfopt PRIVATE ../k2pdfoptlib ../willuslib .)
@@ -10,7 +10,9 @@ index 0d5c1c5..ae069bc 100644
 +if(NOT WIN32)
 +    target_link_libraries(k2pdfopt PRIVATE m)
 +endif()
-+target_link_libraries(k2pdfopt PRIVATE PkgConfig::Leptonica PkgConfig::Tesseract Threads::Threads)
++# Static libtesseract pulls in many leptonica refs; leptonica must come after it
++# so MinGW ld --as-needed does not drop libleptonica.dll.a too early.
++target_link_libraries(k2pdfopt PRIVATE PkgConfig::Tesseract PkgConfig::Leptonica Threads::Threads)
  if(ANDROID)
      target_link_libraries(k2pdfopt PRIVATE log)
  endif()
