@@ -8,6 +8,8 @@ list(APPEND PATCH_FILES
     compat_with_newer_glib.patch
     # Ignore hidden filesystem entries.
     ignore_hidden.patch
+    # MinGW GLib: g_stat expects GStatBuf (_stat64), not struct stat.
+    gstatbuf-mingw.patch
 )
 
 string(APPEND GLIB2_INCLUDE_DIRS
