@@ -42,10 +42,21 @@ index 365966b..4652a44 100644
          {
          status=vsprintf(ansi_buffer,fmt,args);
 diff --git a/willuslib/wfile.c b/willuslib/wfile.c
-index 5312058..14a17fe 100644
+index 5312058..f13e8be 100644
 --- a/willuslib/wfile.c
 +++ b/willuslib/wfile.c
-@@ -2192,7 +2192,7 @@ double wfile_size(char *filename)
+@@ -24,7 +24,9 @@
+ 
+ #include "willus.h"
+ 
+-#if (defined(UNIX) && defined(WIN32))
++#if (defined(UNIX) && defined(WIN32) && !defined(NO_WIN32_API))
++/* Keep UNIX under NO_WIN32_API so MinGW uses in-file unix_* helpers instead of
++ * win*.c symbols we do not compile into libk2pdfopt. */
+ #undef UNIX
+ #endif
+ #if (defined(WIN32))
+@@ -2192,7 +2194,7 @@ double wfile_size(char *filename)
      {
      double size;
  
@@ -54,7 +65,7 @@ index 5312058..14a17fe 100644
      void *handle;
      DWORD high_order_32_bits;
      static char fullname[MAXFILENAMELEN];
-@@ -2505,7 +2505,7 @@ int wfile_wild_match(char *pattern,char *name)
+@@ -2505,13 +2507,16 @@ int wfile_wild_match(char *pattern,char *name)
  int wfile_symlink_size(char *filename)
  
      {
@@ -63,3 +74,12 @@ index 5312058..14a17fe 100644
      int status,size;
      char target[256];
      status=win_symlink(filename,target,255,&size);
+     if (status!=1 && status!=2)
+         return(-1);
+     return(size);
++#elif defined(WIN32)
++    /* No win.c / no reliable lstat for reparse points on MinGW. */
++    return(-1);
+ #else
+     struct stat fs;
+     int status;
