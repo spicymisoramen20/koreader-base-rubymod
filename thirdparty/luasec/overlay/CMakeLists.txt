@@ -19,6 +19,11 @@ target_link_libraries(ssl PRIVATE
     PkgConfig::LuaJIT
     PkgConfig::OpenSSL
 )
+if(WIN32)
+    # Plain path to libluasocket.a does not propagate its PUBLIC ws2_32;
+    # ssl.c/x509.c also call WSAGetLastError/inet_ntop directly.
+    target_link_libraries(ssl PRIVATE ws2_32)
+endif()
 target_sources(ssl PRIVATE
     src/options.c
     src/x509.c

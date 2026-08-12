@@ -27,7 +27,7 @@ if(APPLE)
         $<SEMICOLON> "-framework Foundation"
         $<SEMICOLON> "-framework AppKit"
     )
-else()
+elseif(NOT WIN32)
     # Need pthread library and rt library on old glibc (for `clock_gettime`).
     string(APPEND GLIB2_LIBRARIES $<SEMICOLON> -pthread)
     if(NOT ANDROID)
@@ -37,6 +37,9 @@ endif()
 
 if(ANDROID OR MONOLIBTIC)
     set(ZLIB ${STAGING_DIR}/lib/libz.a)
+elseif(WIN32)
+    # MinGW installs the import library; the DLL lives under bin/.
+    set(ZLIB ${STAGING_DIR}/lib/libz.dll.a)
 else()
     set(ZLIB ${STAGING_DIR}/lib/libz${LIB_EXT})
 endif()
