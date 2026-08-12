@@ -19,7 +19,9 @@ list(APPEND CMAKE_ARGS
     -DWEBP_BUILD_VWEBP=FALSE
     -DWEBP_BUILD_WEBPINFO=FALSE
     -DWEBP_BUILD_WEBPMUX=FALSE
-    -DWEBP_ENABLE_SIMD=$<BOOL:${WANT_SIMD}>
+    # Ubuntu's MinGW GCC 10 lacks a working _mm256_cvtsi256_si32, which
+    # libwebp 1.6 AVX2 paths require. Keep SIMD on other targets.
+    -DWEBP_ENABLE_SIMD=$<IF:$<BOOL:${WIN32}>,FALSE,$<BOOL:${WANT_SIMD}>>
 )
 
 list(APPEND BUILD_CMD COMMAND ninja)

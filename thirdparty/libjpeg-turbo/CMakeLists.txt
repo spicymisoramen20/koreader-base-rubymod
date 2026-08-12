@@ -1,6 +1,8 @@
 list(APPEND PATCH_FILES
     no_cmake_rpath_shenanigans.patch
     no_12_or_16_bits_precision.patch
+    # MinGW uses win/jpeg8.def; drop j12 exports removed by the precision patch.
+    win_def_drop_j12.patch
     no_simdcoverage_exe.patch
     hwcap_neon.patch
 )
