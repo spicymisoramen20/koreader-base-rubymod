@@ -68,6 +68,11 @@ if(ANDROID AND CHOST MATCHES "^armv7a-.*")
     # (https://android.googlesource.com/platform/bionic/+/master/docs/32-bit-abi.md)
     string(APPEND XCFLAGS " -D_FILE_OFFSET_BITS=32")
 endif()
+if(WIN32)
+    # MinGW's default -march does not enable SSE4.1, but mupdf's system.h
+    # sets ARCH_HAS_SSE=1 on x86_64 and deskew_sse.h needs those intrinsics.
+    string(APPEND XCFLAGS " -DARCH_HAS_SSE=0")
+endif()
 
 set(MAKE_CMD
     make -C ${SOURCE_DIR}
