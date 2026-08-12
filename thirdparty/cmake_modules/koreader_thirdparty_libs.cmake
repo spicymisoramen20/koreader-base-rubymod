@@ -80,6 +80,10 @@ if(APPLE)
     list(APPEND LIBRARIES "-framework CoreFoundation")
 endif()
 declare_dependency(djvulibre::djvulibre MONOLIBTIC jpeg STATIC djvulibre LIBRARIES ${LIBRARIES})
+if(WIN32)
+    # Static libdjvulibre.a: consumers must not dllimport ddjvu symbols.
+    target_compile_definitions(_djvulibre__djvulibre INTERFACE DJVUAPI= DDJVUAPI= MINILISPAPI=)
+endif()
 
 # freetype
 declare_dependency(freetype2::freetype INCLUDES freetype2 MONOLIBTIC freetype STATIC brotlicommon brotlidec)
