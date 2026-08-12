@@ -1058,7 +1058,9 @@ else
 MESON_CROSS_TOOLCHAIN = $(CMAKE_DIR)/meson_cross_toolchain.ini
 MESON_HOST_TOOLCHAIN = $(CMAKE_DIR)/meson_host_toolchain.ini
 
-MESON_CROSS_SYSTEM = $(if $(ANDROID),android,linux)
+# FreeType/HarfBuzz meson use host_machine.system() for shared-lib naming
+# (.so vs .dll). Must be 'windows' under MinGW or we link ELF .so artifacts.
+MESON_CROSS_SYSTEM = $(if $(ANDROID),android,$(if $(WIN32),windows,linux))
 ifneq (,$(filter aarch64-%,$(TARGET_MACHINE)))
   MESON_CROSS_CPU_FAMILY = aarch64
 else ifneq (,$(filter arm-% armv7a-%,$(TARGET_MACHINE)))

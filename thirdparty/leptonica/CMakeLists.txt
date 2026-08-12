@@ -35,6 +35,9 @@ list(APPEND CMAKE_ARGS
     # Project options.
     -DBUILD_PROG=FALSE
     -DSTRICT_CONF=TRUE
+    # Upstream defaults SW_BUILD=ON on WIN32 (Software Network deps). We never
+    # use that path; force OFF so PNG/ZLIB find_* runs under MinGW too.
+    -DSW_BUILD=OFF
     # Yes please.
     -DENABLE_PNG=TRUE
     -DENABLE_ZLIB=TRUE
