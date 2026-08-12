@@ -29,7 +29,10 @@ if(APPLE)
         $<SEMICOLON> "-framework Foundation"
         $<SEMICOLON> "-framework AppKit"
     )
-elseif(NOT WIN32)
+elseif(WIN32)
+    # Static libglib pulls Winsock from gwin32/giowin32.
+    string(APPEND GLIB2_LIBRARIES $<SEMICOLON> ws2_32)
+else()
     # Need pthread library and rt library on old glibc (for `clock_gettime`).
     string(APPEND GLIB2_LIBRARIES $<SEMICOLON> -pthread)
     if(NOT ANDROID)
