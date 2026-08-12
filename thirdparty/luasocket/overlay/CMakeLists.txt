@@ -33,15 +33,20 @@ target_link_libraries(luasocket PRIVATE PkgConfig::LuaJIT)
 foreach(MOD mcore score)
     if(BUILD_SHARED_LIBS)
         add_library(${MOD} MODULE)
+        # Koreader installs/loads Lua C modules as *.so even on MinGW.
+        set_target_properties(${MOD} PROPERTIES
+            C_VISIBILITY_PRESET hidden
+            PREFIX ""
+            SUFFIX ".so"
+        )
     else()
+        # MONOLIBTIC (Android): install expects mcore.a / score.a.
         add_library(${MOD} STATIC)
+        set_target_properties(${MOD} PROPERTIES
+            C_VISIBILITY_PRESET hidden
+            PREFIX ""
+        )
     endif()
-    # Koreader installs/loads Lua C modules as *.so even on MinGW.
-    set_target_properties(${MOD} PROPERTIES
-        C_VISIBILITY_PRESET hidden
-        PREFIX ""
-        SUFFIX ".so"
-    )
     target_link_libraries(${MOD} PRIVATE luasocket PkgConfig::LuaJIT)
 endforeach()
 target_sources(mcore PRIVATE src/mime.c)
