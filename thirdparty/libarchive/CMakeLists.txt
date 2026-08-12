@@ -47,6 +47,16 @@ list(APPEND BUILD_CMD COMMAND ninja)
 
 list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} --install .)
 
+if(WIN32)
+    # mupdf's unlibarchive.c uses #include "libarchive/archive.h" on _WIN32.
+    list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${STAGING_DIR}/include/libarchive)
+    list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ../archive.h ${STAGING_DIR}/include/libarchive/archive.h)
+    list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ../archive_entry.h ${STAGING_DIR}/include/libarchive/archive_entry.h)
+endif()
+
 if(NOT MONOLIBTIC)
     append_shared_lib_install_commands(INSTALL_CMD archive VERSION 13)
 endif()
