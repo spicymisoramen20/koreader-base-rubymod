@@ -14,7 +14,9 @@ list(APPEND CMAKE_ARGS
     -DENABLE_ACL=FALSE
     -DENABLE_BZip2=FALSE
     -DENABLE_CAT=FALSE
-    -DENABLE_CNG=FALSE
+    # CNG also pulls in bcrypt linking needed by archive_random on Windows;
+    # keep it off elsewhere (Zip CNG encrypt is unused on device targets).
+    -DENABLE_CNG=$<BOOL:${WIN32}>
     -DENABLE_CPIO=FALSE
     -DENABLE_EXPAT=FALSE
     -DENABLE_ICONV=FALSE

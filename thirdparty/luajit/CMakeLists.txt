@@ -64,7 +64,13 @@ else()
     if(ANDROID)
         list(APPEND BUILD_ARGS TARGET_SYS=Linux)
     elseif(WIN32)
-        list(APPEND BUILD_ARGS TARGET_SYS=Windows)
+        # Top-level Makefile hardcodes FILE_T=luajit / FILE_SO=libluajit.so and
+        # notes it is not useful for Windows; point it at the MinGW artifacts.
+        list(APPEND BUILD_ARGS
+            TARGET_SYS=Windows
+            FILE_T=luajit.exe
+            FILE_SO=lua51.dll
+        )
     endif()
     list(APPEND BUILD_ARGS TARGET_STRIP=true)
 endif()
