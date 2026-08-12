@@ -4,6 +4,8 @@ if(NOT MONOLIBTIC)
     list(APPEND PATCH_CMD COMMAND ${ISED} "\$p" -e "\$s|.*|include(${CMAKE_PATCH_FILE})|" lib/CMakeLists.txt)
 endif()
 
+list(APPEND PATCH_FILES win32_no_console_api.patch)
+
 list(APPEND CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
     -DBUILD_SHARED_LIBS=$<NOT:$<BOOL:${MONOLIBTIC}>>
@@ -22,6 +24,7 @@ endif()
 external_project(
     DOWNLOAD GIT 1fcffeb1e61ec43265d23e2ac77d9a901f8c45d2
     https://github.com/koreader/libk2pdfopt.git
+    PATCH_FILES ${PATCH_FILES}
     PATCH_COMMAND ${PATCH_CMD}
     CMAKE_ARGS ${CMAKE_ARGS}
     SOURCE_SUBDIR lib
