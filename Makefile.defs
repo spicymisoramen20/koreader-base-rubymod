@@ -1038,6 +1038,9 @@ pkgconfig = 'pkg-config'
 pkg-config = 'pkg-config'
 ranlib = '$(strip $(RANLIB))'
 strip = 'true'
+# FreeType meson imports(windows).compile_resources() needs windres once
+# host_machine.system is 'windows'.
+$(if $(WIN32),windres = '$(strip $(RC))')
 
 [built-in options]
 buildtype = '$(if $(KODEBUG),debug,release)'
