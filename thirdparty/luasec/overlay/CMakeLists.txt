@@ -10,7 +10,8 @@ if(BUILD_SHARED_LIBS)
 else()
     add_library(ssl STATIC)
 endif()
-set_target_properties(ssl PROPERTIES C_VISIBILITY_PRESET hidden PREFIX "")
+# Koreader installs/loads Lua C modules as *.so even on MinGW.
+set_target_properties(ssl PROPERTIES C_VISIBILITY_PRESET hidden PREFIX "" SUFFIX ".so")
 target_compile_definitions(ssl PRIVATE -DWITH_LUASOCKET)
 target_include_directories(ssl PRIVATE ${CMAKE_INSTALL_PREFIX}/include)
 target_link_libraries(ssl PRIVATE

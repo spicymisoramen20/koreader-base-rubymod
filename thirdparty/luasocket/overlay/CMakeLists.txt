@@ -24,8 +24,9 @@ if(APPLE)
 elseif(LINUX)
     target_sources(luasocket PRIVATE src/usocket.c)
 elseif(WIN32)
-    # TODO
-    message(FATAL_ERROR "Windows is not supported")
+    target_sources(luasocket PRIVATE src/wsocket.c)
+    # Propagate Winsock to MODULE/SHARED consumers of this static lib.
+    target_link_libraries(luasocket PUBLIC ws2_32)
 endif()
 target_link_libraries(luasocket PRIVATE PkgConfig::LuaJIT)
 
@@ -35,7 +36,12 @@ foreach(MOD mcore score)
     else()
         add_library(${MOD} STATIC)
     endif()
-    set_target_properties(${MOD} PROPERTIES C_VISIBILITY_PRESET hidden PREFIX "")
+    # Koreader installs/loads Lua C modules as *.so even on MinGW.
+    set_target_properties(${MOD} PROPERTIES
+        C_VISIBILITY_PRESET hidden
+        PREFIX ""
+        SUFFIX ".so"
+    )
     target_link_libraries(${MOD} PRIVATE luasocket PkgConfig::LuaJIT)
 endforeach()
 target_sources(mcore PRIVATE src/mime.c)

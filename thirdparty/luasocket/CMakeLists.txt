@@ -45,6 +45,7 @@ append_install_commands(INSTALL_CMD DESTINATION ${STAGING_DIR}/include/luasocket
     ${SOURCE_DIR}/src/socket.h
     ${SOURCE_DIR}/src/timeout.h
     ${SOURCE_DIR}/src/usocket.h
+    ${SOURCE_DIR}/src/wsocket.h
 )
 append_install_commands(INSTALL_CMD libluasocket.a DESTINATION ${STAGING_DIR}/lib)
 if(MONOLIBTIC)

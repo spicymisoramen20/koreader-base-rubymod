@@ -12,6 +12,8 @@ endif()
 set_target_properties(lpeg PROPERTIES
     C_STANDARD 99
     PREFIX ""
+    # Koreader installs/loads Lua C modules as *.so even on MinGW.
+    SUFFIX ".so"
 )
 target_link_libraries(lpeg PRIVATE PkgConfig::LuaJIT)
 target_sources(lpeg PRIVATE

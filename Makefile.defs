@@ -885,6 +885,9 @@ set(APPLE $(DARWIN))
 set(LINUX $(if $(DARWIN)$(WIN32),,1))
 set(WIN32 $(WIN32))
 
+# Lua C modules are installed/loaded as *.so across all targets (see setupkoenv.lua).
+$(if $(WIN32),set(CMAKE_SHARED_MODULE_SUFFIX ".so"))
+
 endef
 
 # Cross-compile only definitions.
