@@ -1,8 +1,20 @@
 diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
-index 0d5c1c5..51319a3 100644
+index 0d5c1c5..eec67a6 100644
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
-@@ -76,7 +76,12 @@ if(DISABLED_LEGACY_ENGINE)
+@@ -61,6 +61,11 @@ set_target_properties(k2pdfopt PROPERTIES
+     VISIBILITY_INLINES_HIDDEN TRUE
+ )
+ target_compile_definitions(k2pdfopt PRIVATE BUILDING_LIBK2PDFOPT NO_FILELIST)
++if(WIN32)
++    # willuslib Win32 GUI/console helpers live in win*.c which we do not build;
++    # KOReader only needs the OCR/reflow subset. Force the UNIX paths instead.
++    target_compile_definitions(k2pdfopt PRIVATE NO_WIN32_API)
++endif()
+ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+     target_compile_definitions(k2pdfopt PRIVATE K2PDFOPT_DEBUG)
+     target_sources(k2pdfopt PRIVATE
+@@ -76,7 +81,12 @@ if(DISABLED_LEGACY_ENGINE)
      target_compile_definitions(k2pdfopt PRIVATE DISABLED_LEGACY_ENGINE)
  endif()
  target_include_directories(k2pdfopt PRIVATE ../k2pdfoptlib ../willuslib .)
@@ -17,19 +29,37 @@ index 0d5c1c5..51319a3 100644
      target_link_libraries(k2pdfopt PRIVATE log)
  endif()
 diff --git a/willuslib/ansi.c b/willuslib/ansi.c
-index 365966b..cc861ef 100644
+index 365966b..4652a44 100644
 --- a/willuslib/ansi.c
 +++ b/willuslib/ansi.c
-@@ -49,10 +49,11 @@
+@@ -324,7 +324,7 @@ int avprintf(FILE *f,const char *fmt,va_list args)
+     {
+     int     status;
  
- #define MAXSIZE 8000
+-#ifdef WIN32
++#ifdef HAVE_WIN32_API
+     if (wsys_win32_api())
+         {
+         status=vsprintf(ansi_buffer,fmt,args);
+diff --git a/willuslib/wfile.c b/willuslib/wfile.c
+index 5312058..14a17fe 100644
+--- a/willuslib/wfile.c
++++ b/willuslib/wfile.c
+@@ -2192,7 +2192,7 @@ double wfile_size(char *filename)
+     {
+     double size;
  
-+/* ansi_buffer is still used by avprintf's WIN32 path; only ansi_on is retired. */
- #if 0
- static int ansi_on=1;
--static char ansi_buffer[MAXSIZE];
- #endif
-+static char ansi_buffer[MAXSIZE];
+-#if (defined(WIN32) || defined(WIN64))
++#if defined(HAVE_WIN32_API)
+     void *handle;
+     DWORD high_order_32_bits;
+     static char fullname[MAXFILENAMELEN];
+@@ -2505,7 +2505,7 @@ int wfile_wild_match(char *pattern,char *name)
+ int wfile_symlink_size(char *filename)
  
- static void ansi_code(FILE *f,int *args,int nargs,int code);
- static void ansi_parse(FILE *f,char *s);
+     {
+-#ifdef WIN32
++#ifdef HAVE_WIN32_API
+     int status,size;
+     char target[256];
+     status=win_symlink(filename,target,255,&size);
