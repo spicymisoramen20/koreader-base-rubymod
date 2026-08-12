@@ -215,7 +215,7 @@ target_compile_definitions(djvulibre PRIVATE HAVE_CONFIG_H)
 # Static MinGW build: DjVuGlobal.h defaults DJVUAPI to dllimport on _WIN32
 # unless DJVUAPI_EXPORT is set, which then forbids defining static members.
 if(WIN32)
-    target_compile_definitions(djvulibre PUBLIC DJVUAPI=)
+    target_compile_definitions(djvulibre PUBLIC DJVUAPI= DDJVUAPI=)
 endif()
 target_compile_options(djvulibre PRIVATE -Wall)
 # Unbreak build with GCC 16 at higher optimization levels (-O2 and above).
