@@ -83,8 +83,33 @@ function(append_binary_install_command CMD_LIST)
 endfunction()
 
 function(append_shared_lib_install_commands CMD_LIST)
-    set_libname(LIB ${ARGN})
-    append_binary_install_command(${CMD_LIST} ${STAGING_DIR}/lib/${LIB} DESTINATION ${OUTPUT_DIR}/libs)
+    cmake_parse_arguments("" "" "EXT;VERSION" "" ${ARGN})
+    set(_NAME ${_UNPARSED_ARGUMENTS})
+    if(DEFINED _EXT)
+        set(_EXT_ARGS EXT ${_EXT})
+    else()
+        set(_EXT_ARGS)
+    endif()
+    if(DEFINED _VERSION)
+        set_libname(LIB ${_NAME} ${_EXT_ARGS} VERSION ${_VERSION})
+    else()
+        set_libname(LIB ${_NAME} ${_EXT_ARGS})
+    endif()
+    set_libname(LIB_PLAIN ${_NAME} ${_EXT_ARGS})
+    if(WIN32)
+        # MinGW/CMake install runtime DLLs under bin/, often without the
+        # SOVERSION infix set_libname expects (bin/libz.dll vs libz-1.dll).
+        # Skip ELF objcopy/debuglink; just stage the DLL for packaging.
+        list(APPEND ${CMD_LIST} COMMAND ${BASE_DIR}/utils/install_mingw_dll.sh
+            ${OUTPUT_DIR}/libs
+            ${STAGING_DIR}/bin/${LIB}
+            ${STAGING_DIR}/lib/${LIB}
+            ${STAGING_DIR}/bin/${LIB_PLAIN}
+            ${STAGING_DIR}/lib/${LIB_PLAIN}
+        )
+    else()
+        append_binary_install_command(${CMD_LIST} ${STAGING_DIR}/lib/${LIB} DESTINATION ${OUTPUT_DIR}/libs)
+    endif()
     set(${CMD_LIST} ${${CMD_LIST}} PARENT_SCOPE)
 endfunction()
 
