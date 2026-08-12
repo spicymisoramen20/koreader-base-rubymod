@@ -88,7 +88,18 @@ list(APPEND BUILD_CMD COMMAND make ${BUILD_ARGS} amalg)
 list(APPEND INSTALL_CMD COMMAND make ${BUILD_ARGS} install PREFIX=${STAGING_DIR})
 
 if(NOT SKIP_LUAJIT_BIN)
-    append_binary_install_command(INSTALL_CMD ${STAGING_DIR}/bin/luajit)
+    if(WIN32)
+        # Stage as luajit.exe for Explorer; LuaJIT's PREFIX install may land as
+        # bin/luajit or bin/luajit.exe depending on FILE_T / make version.
+        list(APPEND INSTALL_CMD COMMAND bash -c
+            "set -e; out='${OUTPUT_DIR}'; src='${STAGING_DIR}/bin'; \
+             if [ -f \"$$src/luajit.exe\" ]; then bin=\"$$src/luajit.exe\"; \
+             elif [ -f \"$$src/luajit\" ]; then bin=\"$$src/luajit\"; \
+             else echo 'luajit binary missing under ${STAGING_DIR}/bin' >&2; exit 1; fi; \
+             cp -f \"$$bin\" \"$$out/luajit.exe\"; cp -f \"$$bin\" \"$$out/luajit\"")
+    else()
+        append_binary_install_command(INSTALL_CMD ${STAGING_DIR}/bin/luajit)
+    endif()
 endif()
 
 if(USE_LUAJIT_LIB)
@@ -110,6 +121,11 @@ if(USE_LUAJIT_LIB)
         list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${SOURCE_DIR}/src/lua51.dll
             ${OUTPUT_DIR}/libs/lua51.dll)
+        # Next to luajit.exe so a bare double-click can resolve the DLL
+        # without relying on PATH (still opens a REPL; use koreader.bat).
+        list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SOURCE_DIR}/src/lua51.dll
+            ${OUTPUT_DIR}/lua51.dll)
     endif()
 else()
     # Prevent LUA modules from linking with the LuaJIT library.

@@ -82,6 +82,26 @@ local function libname(name, version)
     return string.format(version and lib_version_format or lib_basic_format, name, version)
 end
 
+-- Candidate basenames for a (name, version) pair.
+-- On Windows, MinGW ships most libs as libNAME[-VER].dll while SDL uses SDL3.dll.
+local function libcandidates(name, version)
+    if ffi.os == "Windows" then
+        if version then
+            return {
+                string.format("lib%s-%s.dll", name, version),
+                string.format("%s-%s.dll", name, version),
+                string.format("lib%s.dll", name),
+                string.format("%s.dll", name),
+            }
+        end
+        return {
+            string.format("lib%s.dll", name),
+            string.format("%s.dll", name),
+        }
+    end
+    return { libname(name, version) }
+end
+
 -- See `ffi.loadlib` for what arguments are expected.
 local function findlib(...)
     local name, version = ...
@@ -92,10 +112,11 @@ local function findlib(...)
     if monolibtic and monolibtic.redirects[name] then
         return monolibtic.path
     end
-    local lib = libname(name, version)
-    local path = package.searchpath(lib, lib_search_path, "/", "/")
-    if path then
-        return path
+    for _, lib in ipairs(libcandidates(name, version)) do
+        local path = package.searchpath(lib, lib_search_path, "/", "/")
+        if path then
+            return path
+        end
     end
     return findlib(select(3, ...))
 end
@@ -163,8 +184,19 @@ elseif ffi.os == "OSX" then
     lib_basic_format = "lib%s.dylib"
     -- Versioned: libz.1.dylib
     lib_version_format = "lib%s.%s.dylib"
+elseif ffi.os == "Windows" then
+    -- Our MinGW package keeps runtime DLLs under libs/. Put that first on PATH
+    -- so the PE loader can resolve lua51.dll / lib*.dll dependencies.
+    ffi.cdef[[int _putenv(const char *envstring);]]
+    local path = os.getenv("PATH") or ""
+    ffi.C._putenv("PATH=libs;." .. ";" .. path)
+    lib_search_path = "libs/?"
+    -- Unversioned fallback used by ffi.loadlib when findlib misses: libz.dll
+    lib_basic_format = "lib%s.dll"
+    -- Versioned MinGW style: libfreetype-6.dll
+    lib_version_format = "lib%s-%s.dll"
 end
 
-log("lib_search_path: " .. lib_search_path)
-log("lib_basic_format: " .. lib_basic_format)
-log("lib_version_format: " .. lib_version_format)
+log("lib_search_path: " .. tostring(lib_search_path))
+log("lib_basic_format: " .. tostring(lib_basic_format))
+log("lib_version_format: " .. tostring(lib_version_format))

@@ -689,7 +689,8 @@ local libSDL3 = nil
 function util.loadSDL3()
     if libSDL3 == nil then
         local ok
-        ok, libSDL3 = pcall(ffi.loadlib, "SDL3", 0)
+        -- Linux: libSDL3.so.0; Windows MinGW package: libs/SDL3.dll (no lib/sover).
+        ok, libSDL3 = pcall(ffi.loadlib, "SDL3", 0, "SDL3", nil)
         if not ok then
             print("SDL3 not loaded:", libSDL3)
             libSDL3 = false
