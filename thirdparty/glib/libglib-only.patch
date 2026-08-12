@@ -38,7 +38,17 @@
  
  # First check in libc, fallback to libintl, and as last chance build
  # proxy-libintl subproject.
-@@ -2570,25 +2570,19 @@ gnome = import('gnome')
+@@ -2297,6 +2297,8 @@ else
+   # using proxy-libintl fallback
+   libintl = dependency('intl', allow_fallback: true)
+-  assert(libintl.type_name() == 'internal')
++  # Koreader installs proxy-libintl into STAGING_DIR first. Meson then finds
++  # it as library/pkgconfig (not an internal wrap), and has_function('ngettext')
++  # fails because proxy-libintl exposes ngettext as a macro. Still usable.
+   libintl_deps = [libintl]
+   have_bind_textdomain_codeset = true  # proxy-libintl supports it
+ endif
+@@ -2570,25 +2572,19 @@ gnome = import('gnome')
  
  subdir('tools')
  subdir('glib')
@@ -71,7 +81,7 @@
  # Check whether we support overriding the invalid parameter handler on Windows for _get_osfhandle(),
  # g_fsync() (i.e. _commit()), etc
  if host_system == 'windows'
-@@ -2614,7 +2608,7 @@ if rst2man.found()
+@@ -2614,7 +2610,7 @@ if rst2man.found()
  endif
  
  gnome = import('gnome')
