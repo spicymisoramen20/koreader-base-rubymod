@@ -93,6 +93,20 @@ endif()
 
 if(USE_LUAJIT_LIB)
     append_shared_lib_install_commands(INSTALL_CMD luajit)
+    if(WIN32)
+        # Top-level install copies lua51.dll as libluajit.dll and skips the
+        # MinGW import library. pkg-config still says -lluajit-5.1, and C
+        # modules bind to the DLL name baked into the implib (lua51.dll).
+        list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SOURCE_DIR}/src/libluajit-5.1.dll.a
+            ${STAGING_DIR}/lib/libluajit-5.1.dll.a)
+        list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SOURCE_DIR}/src/lua51.dll
+            ${STAGING_DIR}/lib/lua51.dll)
+        list(APPEND INSTALL_CMD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SOURCE_DIR}/src/lua51.dll
+            ${OUTPUT_DIR}/libs/lua51.dll)
+    endif()
 else()
     # Prevent LUA modules from linking with the LuaJIT library.
     list(APPEND INSTALL_CMD COMMAND ${ISED} "s|-l\${libname}||" ${STAGING_DIR}/lib/pkgconfig/luajit.pc)
