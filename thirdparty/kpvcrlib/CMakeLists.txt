@@ -11,6 +11,9 @@ include(CheckTypeSize)
 
 if(LEGACY)
     set(DISABLE_CLOEXEC 1)
+elseif(WIN32)
+    # MinGW/Windows has no O_CLOEXEC semantics for our stream wrappers.
+    set(DISABLE_CLOEXEC 1)
 else()
     # Test and Enable LFS Support in glibc, based on zlib
     set(CMAKE_REQUIRED_DEFINITIONS -D_LARGEFILE64_SOURCE=1)

@@ -1,9 +1,12 @@
 #ifndef CRSETUP_H_INCLUDED
 #define CRSETUP_H_INCLUDED
 
-/// Yes, even on macOS (Windows is unsupported)…
+/// Linux-ish platforms (macOS, Android, …). Skip on Windows/MinGW —
+/// otherwise lvmemman pulls in sigaction/SIGBUS which do not exist there.
+#ifndef _WIN32
 #define LINUX 1
 #define _LINUX 1
+#endif
 
 /// Compression.
 #define USE_ZLIB                             1
