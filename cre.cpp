@@ -2650,6 +2650,36 @@ bool docToWindowRect(LVDocView *tv, lvRect &rc) {
     return false;
 }
 
+// Mirror of lvtinydom.cpp's helper: true if text sits under a ruby annotation
+// container. Used when resolving highlight segment anchors so <rt> geometry
+// does not wipe base-column boxes. (cre.cpp uses element names; fb2def ids
+// are not always visible here.)
+static bool creIsRubyAnnotationTextNode(ldomNode * node)
+{
+    if (!node)
+        return false;
+    if (node->isText())
+        node = node->getParentNode();
+    while (node) {
+        if (node->isElement()) {
+            lString32 name = node->getNodeName();
+            if (name == "rt" || name == "rp" || name == "rtc")
+                return true;
+            // Synthetic vertical boxing may expose annotation cells as rubyBox
+            // with T="rt"/"rtc" rather than a real <rt> element name.
+            if (name == "rubyBox") {
+                lString32 t = node->getAttributeValue("T");
+                if (t == U"rt" || t == U"rtc")
+                    return true;
+            }
+            if (name == "ruby")
+                return false;
+        }
+        node = node->getParentNode();
+    }
+    return false;
+}
+
 // Push to the Lua stack the multiple segments (rectangle for each text line)
 // that a ldomXRange spans on the page.
 // Each segment is pushed as a table {x0=, y0=, x1=, y1=}.
@@ -2679,22 +2709,36 @@ void lua_pushSegmentsFromRange(lua_State *L, CreDocument *doc, ldomXRange *range
     //   (B) extend the last remaining rect's .right to "de"'s .right.
     if (tv->isVerticalText() && rects.length() > 0) {
         ldomXPointerEx rangeEnd = range->getEnd();
-        // Find "de" = the last character actually IN the selection.
+        // Find "de" = the last BASE character actually IN the selection.
         // rangeEnd points to the char AFTER "de" (set by setOffset+1 in
         // getTextFromPositions).  Two cases:
         //   a) rangeEnd.offset > 0: "de" is at offset-1 in the same text node.
         //   b) rangeEnd.offset == 0: "de" is the last char of the previous text
         //      node (e.g. end of a <p>); use prevVisibleChar to find it.
+        //
+        // Then walk backward off any ruby <rt> annotation: mono-ruby DOM order
+        // often leaves the exclusive end on/after furigana. Using an annotation
+        // rect as "de" makes step (A) treat every base-column segment as
+        // overflow (different .top), wiping the highlight until the boundary
+        // moves again — the disappear/reappear flicker when adjusting ends.
         lvRect deRect;
         bool de_found = false;
+        ldomXPointerEx dePtr = rangeEnd;
         if (rangeEnd.getOffset() > 0) {
-            ldomXPointerEx dePtr = rangeEnd;
             dePtr.setOffset(rangeEnd.getOffset() - 1);
             de_found = dePtr.getRect(deRect, true);
         } else {
-            ldomXPointerEx prevPtr = rangeEnd;
-            if (prevPtr.prevVisibleChar(false))
-                de_found = prevPtr.getRect(deRect, true);
+            if (dePtr.prevVisibleChar(false))
+                de_found = dePtr.getRect(deRect, true);
+        }
+        for (int guard = 0; de_found && guard < 128; guard++) {
+            if (!creIsRubyAnnotationTextNode(dePtr.getNode()))
+                break;
+            if (!dePtr.prevVisibleChar(false)) {
+                de_found = false;
+                break;
+            }
+            de_found = dePtr.getRect(deRect, true);
         }
         if (de_found) {
             // (A) Remove overflow rects whose column advance (.top) > "de"'s column.
@@ -2778,6 +2822,13 @@ static int getNextVisibleWordStart(lua_State *L){
     if (nodep.isNull())
         return 0;
     if (nodep.nextVisibleWordStart()) {
+        // Skip ruby annotations so highlight boundary buttons / word nav do
+        // not park on <rt> (which produces empty segment boxes).
+        for (int guard = 0; guard < 64
+                && creIsRubyAnnotationTextNode(nodep.getNode()); guard++) {
+            if (!nodep.nextVisibleWordStart())
+                return 0;
+        }
         lua_pushstring(L, UnicodeToLocal(nodep.toString()).c_str());
         return 1;
     }
@@ -2791,6 +2842,11 @@ static int getNextVisibleWordEnd(lua_State *L){
     if (nodep.isNull())
         return 0;
     if (nodep.nextVisibleWordEnd()) {
+        for (int guard = 0; guard < 64
+                && creIsRubyAnnotationTextNode(nodep.getNode()); guard++) {
+            if (!nodep.nextVisibleWordEnd())
+                return 0;
+        }
         lua_pushstring(L, UnicodeToLocal(nodep.toString()).c_str());
         return 1;
     }
@@ -2804,12 +2860,16 @@ static int getPrevVisibleWordStart(lua_State *L){
     if (nodep.isNull())
         return 0;
     if (nodep.prevVisibleWordStart()) {
+        for (int guard = 0; guard < 64
+                && creIsRubyAnnotationTextNode(nodep.getNode()); guard++) {
+            if (!nodep.prevVisibleWordStart())
+                return 0;
+        }
         lua_pushstring(L, UnicodeToLocal(nodep.toString()).c_str());
         return 1;
     }
     return 0;
 }
-
 
 static int getPrevVisibleWordEnd(lua_State *L){
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -2818,6 +2878,11 @@ static int getPrevVisibleWordEnd(lua_State *L){
     if (nodep.isNull())
         return 0;
     if (nodep.prevVisibleWordEnd()) {
+        for (int guard = 0; guard < 64
+                && creIsRubyAnnotationTextNode(nodep.getNode()); guard++) {
+            if (!nodep.prevVisibleWordEnd())
+                return 0;
+        }
         lua_pushstring(L, UnicodeToLocal(nodep.toString()).c_str());
         return 1;
     }
@@ -2831,6 +2896,11 @@ static int getNextVisibleChar(lua_State *L){
     if (nodep.isNull())
         return 0;
     if (nodep.nextVisibleChar()) {
+        for (int guard = 0; guard < 128
+                && creIsRubyAnnotationTextNode(nodep.getNode()); guard++) {
+            if (!nodep.nextVisibleChar())
+                return 0;
+        }
         lua_pushstring(L, UnicodeToLocal(nodep.toString()).c_str());
         return 1;
     }
@@ -2844,6 +2914,11 @@ static int getPrevVisibleChar(lua_State *L){
     if (nodep.isNull())
         return 0;
     if (nodep.prevVisibleChar()) {
+        for (int guard = 0; guard < 128
+                && creIsRubyAnnotationTextNode(nodep.getNode()); guard++) {
+            if (!nodep.prevVisibleChar())
+                return 0;
+        }
         lua_pushstring(L, UnicodeToLocal(nodep.toString()).c_str());
         return 1;
     }
