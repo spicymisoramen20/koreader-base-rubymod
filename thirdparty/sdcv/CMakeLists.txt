@@ -63,7 +63,11 @@ list(APPEND CMAKE_ARGS
 
 list(APPEND BUILD_CMD COMMAND ninja)
 
-append_binary_install_command(INSTALL_CMD sdcv)
+if(WIN32)
+    append_binary_install_command(INSTALL_CMD sdcv.exe)
+else()
+    append_binary_install_command(INSTALL_CMD sdcv)
+endif()
 
 external_project(
     DOWNLOAD URL 265dbfda83a57810595d156877f3e6fd

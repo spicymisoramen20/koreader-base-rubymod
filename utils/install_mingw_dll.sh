@@ -41,11 +41,10 @@ for candidate in "$@"; do
     esac
 done
 
-# shellcheck disable=SC2086
-for d in ${dirs}; do
-    # Prefer a versioned DLL over a plain NAME.dll if both exist.
-    # Lexicographically last tends to be the full VERSION for leptonica.
-    pick=""
+try_stem_glob() {
+    local stem="$1"
+    local d="$2"
+    local pick=""
     for m in $(ls -1 "${d}/${stem}"-*.dll 2>/dev/null | sort); do
         pick="${m}"
     done
@@ -53,7 +52,23 @@ for d in ${dirs}; do
         copy_if_present "${pick}"
     fi
     copy_if_present "${d}/${stem}.dll"
+}
+
+# shellcheck disable=SC2086
+for d in ${dirs}; do
+    # Prefer a versioned DLL over a plain NAME.dll if both exist.
+    # Lexicographically last tends to be the full VERSION for leptonica.
+    try_stem_glob "${stem}" "${d}"
 done
+
+# SDL3 and similar install SDL3.dll (no lib prefix).
+alt_stem="${stem#lib}"
+if [[ "${alt_stem}" != "${stem}" ]]; then
+    # shellcheck disable=SC2086
+    for d in ${dirs}; do
+        try_stem_glob "${alt_stem}" "${d}"
+    done
+fi
 
 echo "missing shared library DLL; tried:" >&2
 printf '  %s\n' "$@" >&2
