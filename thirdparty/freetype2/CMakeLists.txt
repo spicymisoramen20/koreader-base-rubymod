@@ -3,12 +3,19 @@ list(APPEND PATCH_FILES
     ftcalc_gcc12_arm_neon_fix.patch
 )
 
+# Windows/MinGW has no <sys/mman.h>; FreeType's meson hard-errors if -Dmmap=enabled.
+if(WIN32)
+    set(FT_MMAP disabled)
+else()
+    set(FT_MMAP enabled)
+endif()
+
 list(APPEND CFG_CMD COMMAND
     ${MESON_SETUP} --default-library=$<IF:$<BOOL:${MONOLIBTIC}>,static,shared>
     -Derror_strings=$<IF:$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>,true,false>
     -Dbrotli=enabled
     -Dharfbuzz=disabled
-    -Dmmap=enabled
+    -Dmmap=${FT_MMAP}
     -Dzlib=system
     ${SOURCE_DIR}
 )
