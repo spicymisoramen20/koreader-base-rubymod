@@ -3141,22 +3141,8 @@ static void collectContiguousRubySiblings(ldomNode * ruby, std::vector<ldomNode 
         out.push_back(ruby);
 }
 
-static int getRubyFromPosition(lua_State *L)
+static int pushRubyGroupTable(lua_State *L, ldomNode * ruby)
 {
-    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
-    int x = luaL_checkint(L, 2);
-    int y = luaL_checkint(L, 3);
-
-    lvPoint pt(x, y);
-    // Match getTextFromPositions / selection hit-testing:
-    // strictBounds=false + forTextSelection=true is far more reliable for
-    // vertical-rl and taps that land slightly off glyph tight bounds.
-    ldomXPointer xp = doc->text_view->getNodeByPoint(pt, false, true);
-
-    if (xp.isNull())
-        return 0;
-
-    ldomNode * ruby = findRubyAncestor(xp.getNode());
     if (!ruby)
         return 0;
 
@@ -3180,6 +3166,114 @@ static int getRubyFromPosition(lua_State *L)
     }
     lua_rawset(L, -3);
 
+    return 1;
+}
+
+static int getRubyFromPosition(lua_State *L)
+{
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    int x = luaL_checkint(L, 2);
+    int y = luaL_checkint(L, 3);
+
+    lvPoint pt(x, y);
+    // Match getTextFromPositions / selection hit-testing:
+    // strictBounds=false + forTextSelection=true is far more reliable for
+    // vertical-rl and taps that land slightly off glyph tight bounds.
+    ldomXPointer xp = doc->text_view->getNodeByPoint(pt, false, true);
+
+    if (xp.isNull())
+        return 0;
+
+    ldomNode * ruby = findRubyAncestor(xp.getNode());
+    if (!ruby)
+        return 0;
+
+    return pushRubyGroupTable(L, ruby);
+}
+
+// Resolve a ruby group from any xpointer inside (or on) a <ruby> tree.
+// Used by the highlight dialog to find furigana in an annotation range
+// without relying on finger hit-testing against thin fog strips.
+static int getRubyFromXPointer(lua_State *L)
+{
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    const char * xp_string = luaL_checkstring(L, 2);
+
+    ldomXPointer xp = doc->dom_doc->createXPointer(lString32(xp_string));
+    if (xp.isNull())
+        return 0;
+
+    ldomNode * node = xp.getNode();
+    ldomNode * ruby = node;
+    if (!ruby || !ruby->isElement() || ruby->getNodeName() != "ruby")
+        ruby = findRubyAncestor(node);
+    if (!ruby)
+        return 0;
+
+    return pushRubyGroupTable(L, ruby);
+}
+
+// Collect every distinct ruby group overlapped by [xp0, xp1].
+// Walks text nodes in document order so highlight dialogs do not depend on
+// finger hit-testing or getNextVisibleChar edge cases.
+static int getRubiesFromXPointers(lua_State *L)
+{
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    const char * xp0 = luaL_checkstring(L, 2);
+    const char * xp1 = luaL_checkstring(L, 3);
+
+    ldomXPointerEx startp = doc->dom_doc->createXPointer(lString32(xp0));
+    ldomXPointerEx endp = doc->dom_doc->createXPointer(lString32(xp1));
+    if (startp.isNull() || endp.isNull())
+        return 0;
+
+    if (startp.compare(endp) > 0) {
+        ldomXPointerEx tmp = startp;
+        startp = endp;
+        endp = tmp;
+    }
+
+    std::vector<ldomNode *> rubies;
+    std::vector<ldomNode *> seen_heads;
+
+    auto add_ruby = [&](ldomNode * node) {
+        ldomNode * ruby = findRubyAncestor(node);
+        if (!ruby)
+            return;
+        std::vector<ldomNode *> group;
+        collectContiguousRubySiblings(ruby, group);
+        ldomNode * head = group.empty() ? ruby : group[0];
+        for (size_t i = 0; i < seen_heads.size(); i++) {
+            if (seen_heads[i] == head)
+                return;
+        }
+        seen_heads.push_back(head);
+        for (size_t i = 0; i < group.size(); i++)
+            rubies.push_back(group[i]);
+    };
+
+    add_ruby(startp.getNode());
+    add_ruby(endp.getNode());
+
+    ldomXPointerEx cur = startp;
+    if (!cur.isText())
+        cur.nextText();
+    int guard = 0;
+    while (!cur.isNull() && cur.compare(endp) <= 0 && guard++ < 2000) {
+        add_ruby(cur.getNode());
+        if (!cur.nextText())
+            break;
+    }
+
+    if (rubies.empty())
+        return 0;
+
+    lua_createtable(L, (int)rubies.size(), 0);
+    for (size_t i = 0; i < rubies.size(); i++) {
+        ldomXPointer gxp(rubies[i], 0);
+        lua_pushstring(L, UnicodeToLocal(gxp.toString()).c_str());
+        lua_rawseti(L, -2, (int)i + 1);
+    }
     return 1;
 }
 
@@ -5024,6 +5118,8 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getImageDataFromPosition", getImageDataFromPosition},
     {"getNearestWordFromPosition", getNearestWordFromPosition},
     {"getRubyFromPosition", getRubyFromPosition},
+    {"getRubyFromXPointer", getRubyFromXPointer},
+    {"getRubiesFromXPointers", getRubiesFromXPointers},
     {"setRubyToggleMode", setRubyToggleMode},
     {"setRubyToggleObscureStyle", setRubyToggleObscureStyle},
     {"setRubyToggleDitherParams", setRubyToggleDitherParams},
