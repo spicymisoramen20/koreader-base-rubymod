@@ -1,5 +1,3 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-index bed8895..732a8fa 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -1,4 +1,4 @@
@@ -8,3 +6,22 @@ index bed8895..732a8fa 100755
  
  project(lunasvg VERSION 2.3.9 LANGUAGES CXX C)
  
+@@ -25,6 +25,7 @@ if(LUNASVG_BUILD_EXAMPLES)
+     target_include_directories(svg2png PRIVATE 3rdparty/stb)
+ endif()
+ 
++set(LUNASVG_BINDIR ${CMAKE_INSTALL_PREFIX}/bin)
+ set(LUNASVG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
+ set(LUNASVG_INCDIR ${CMAKE_INSTALL_PREFIX}/include)
+ 
+@@ -34,6 +35,9 @@ install(FILES
+ )
+ 
+ install(TARGETS lunasvg
++    # MinGW shared libs are RUNTIME (.dll) + ARCHIVE (.dll.a); without
++    # RUNTIME the DLL never reaches staging and install_mingw_dll fails.
++    RUNTIME     DESTINATION    ${LUNASVG_BINDIR}
+     LIBRARY     DESTINATION    ${LUNASVG_LIBDIR}
+     ARCHIVE     DESTINATION    ${LUNASVG_LIBDIR}
+     INCLUDES    DESTINATION    ${LUNASVG_INCDIR}
+ )
