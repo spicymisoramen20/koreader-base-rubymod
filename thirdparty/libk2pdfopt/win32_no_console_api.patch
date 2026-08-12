@@ -1,19 +1,8 @@
 diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index 0d5c1c5..ae069bc 100644
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
-@@ -55,6 +55,11 @@ set_target_properties(k2pdfopt PROPERTIES
-     VISIBILITY_INLINES_HIDDEN TRUE
- )
- target_compile_definitions(k2pdfopt PRIVATE BUILDING_LIBK2PDFOPT NO_FILELIST)
-+if(WIN32)
-+    # willuslib/ansi.c's Win32 ANSI path needs ansi_buffer, which is #if 0'd.
-+    # KOReader never needs console ANSI; skip HAVE_WIN32_API entirely.
-+    target_compile_definitions(k2pdfopt PRIVATE NO_WIN32_API)
-+endif()
- if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-     target_compile_definitions(k2pdfopt PRIVATE K2PDFOPT_DEBUG)
-     target_sources(k2pdfopt PRIVATE
-@@ -72,7 +77,10 @@ if(DISABLED_LEGACY_ENGINE)
+@@ -76,7 +76,10 @@ if(DISABLED_LEGACY_ENGINE)
      target_compile_definitions(k2pdfopt PRIVATE DISABLED_LEGACY_ENGINE)
  endif()
  target_include_directories(k2pdfopt PRIVATE ../k2pdfoptlib ../willuslib .)
@@ -25,3 +14,20 @@ diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
  if(ANDROID)
      target_link_libraries(k2pdfopt PRIVATE log)
  endif()
+diff --git a/willuslib/ansi.c b/willuslib/ansi.c
+index 365966b..cc861ef 100644
+--- a/willuslib/ansi.c
++++ b/willuslib/ansi.c
+@@ -49,10 +49,11 @@
+ 
+ #define MAXSIZE 8000
+ 
++/* ansi_buffer is still used by avprintf's WIN32 path; only ansi_on is retired. */
+ #if 0
+ static int ansi_on=1;
+-static char ansi_buffer[MAXSIZE];
+ #endif
++static char ansi_buffer[MAXSIZE];
+ 
+ static void ansi_code(FILE *f,int *args,int nargs,int code);
+ static void ansi_parse(FILE *f,char *s);
