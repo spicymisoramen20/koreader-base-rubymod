@@ -2757,37 +2757,8 @@ void lua_pushSegmentsFromRange(lua_State *L, CreDocument *doc, ldomXRange *range
                     last.right = de_right;
             }
         }
-
-        // (C) Merge fragmented segments that share the same column band.
-        // Even after skipping <rt> in getSegmentRects, other text-run / inline
-        // boundaries can still emit several rects per column. Union those so
-        // Lighten draws one continuous bar instead of stacked per-char blocks.
-        // Same column: overlapping [top,bottom] (doc_y = column axis in vertical-rl).
-        if (rects.length() > 1) {
-            LVArray<lvRect> merged;
-            merged.reserve(rects.length());
-            merged.add(rects[0]);
-            for (int i = 1; i < rects.length(); i++) {
-                lvRect & prev = merged[merged.length() - 1];
-                const lvRect & cur = rects[i];
-                const int prev_mid = (prev.top + prev.bottom) / 2;
-                const int cur_mid = (cur.top + cur.bottom) / 2;
-                // Midpoints within half a strut of each other → same column.
-                // Use the larger of the two column depths as the tolerance unit.
-                int band = prev.bottom - prev.top;
-                int cur_band = cur.bottom - cur.top;
-                if (cur_band > band)
-                    band = cur_band;
-                if (band < 1)
-                    band = 1;
-                if (abs(prev_mid - cur_mid) <= band / 2) {
-                    prev.extend(cur);
-                } else {
-                    merged.add(cur);
-                }
-            }
-            rects = merged;
-        }
+        // Same-line/column fragment merge lives in ldomXRange::getSegmentRects
+        // (shared by native selection and this Lua path; covers horizontal ruby).
     }
 
     int lcount = 1;
