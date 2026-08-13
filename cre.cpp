@@ -2680,6 +2680,16 @@ static bool creIsRubyAnnotationTextNode(ldomNode * node)
     return false;
 }
 
+static int isRubyAnnotationXPointer(lua_State *L) {
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    const char* xp = luaL_checkstring(L, 2);
+    ldomXPointerEx nodep = doc->dom_doc->createXPointer(lString32(xp));
+    if (nodep.isNull())
+        return 0;
+    lua_pushboolean(L, creIsRubyAnnotationTextNode(nodep.getNode()));
+    return 1;
+}
+
 // Push to the Lua stack the multiple segments (rectangle for each text line)
 // that a ldomXRange spans on the page.
 // Each segment is pushed as a table {x0=, y0=, x1=, y1=}.
@@ -5015,6 +5025,7 @@ static const struct luaL_Reg credocument_meth[] = {
     {"getPrevVisibleWordEnd", getPrevVisibleWordEnd},
     {"getPrevVisibleChar", getPrevVisibleChar},
     {"getNextVisibleChar", getNextVisibleChar},
+    {"isRubyAnnotationXPointer", isRubyAnnotationXPointer},
     {"getTextFromXPointers", getTextFromXPointers},
     {"compareXPointers", compareXPointers},
     /*--- set methods ---*/
