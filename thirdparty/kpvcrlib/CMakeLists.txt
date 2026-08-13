@@ -47,6 +47,7 @@ add_library(crengine STATIC
     ${CRE_DIR}/src/lvfntman.cpp
     ${CRE_DIR}/src/lvfntman_vert.cpp
     ${CRE_DIR}/src/lvimg.cpp
+    ${CRE_DIR}/src/lvkanjilevel.cpp
     ${CRE_DIR}/src/lvmemman.cpp
     ${CRE_DIR}/src/lvopc.cpp
     ${CRE_DIR}/src/lvpagesplitter.cpp
