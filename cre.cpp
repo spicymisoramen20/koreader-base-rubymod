@@ -783,6 +783,8 @@ extern void ltext_get_vert_trailing_space_trim(int *count_out, int *chars_out);
 // Vertical inline-image draw Y drift.
 extern void ltext_reset_vert_image_draw_drift();
 extern void ltext_get_vert_image_draw_drift(int *draw_count_out, int *drift_count_out, int *max_px_out);
+extern void ltext_set_vert_column_top_prefs(int mode, int scale_percent);
+extern void ltext_get_vert_column_top_prefs(int *mode_out, int *scale_out);
 
 // Macro for the common pattern: reset a diagnostic (void → void) and expose to Lua.
 #define DIAG_RESET_FN(LuaFnName, CResetFn) \
@@ -816,6 +818,15 @@ DIAG_RESET_FN(resetVertTrailingSpaceTrim, ltext_reset_vert_trailing_space_trim)
 DIAG_GET2_FN(getVertTrailingSpaceTrim, ltext_get_vert_trailing_space_trim, int, int)
 DIAG_RESET_FN(resetVertImageDrawDrift, ltext_reset_vert_image_draw_drift)
 DIAG_GET3_FN(getVertImageDrawDrift, ltext_get_vert_image_draw_drift, int, int, int)
+
+static int setVertColumnTopPrefs(lua_State *L) {
+    CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
+    (void)doc;
+    int mode = luaL_checkint(L, 2);
+    int scale = luaL_checkint(L, 3);
+    ltext_set_vert_column_top_prefs(mode, scale);
+    return 0;
+}
 
 static int hasCacheFile(lua_State *L) {
     CreDocument *doc = (CreDocument*) luaL_checkudata(L, 1, "credocument");
@@ -922,7 +933,13 @@ static int getDocumentRenderingHash(lua_State *L) {
 		extended = lua_toboolean(L, 2);
 	}
 
-	lua_pushinteger(L, doc->text_view->getDocumentRenderingHash(extended));
+	lUInt32 hash = doc->text_view->getDocumentRenderingHash(extended);
+	int mode = 1;
+	int scale = 100;
+	ltext_get_vert_column_top_prefs(&mode, &scale);
+	hash = hash * 31u + (lUInt32)mode;
+	hash = hash * 31u + (lUInt32)scale;
+	lua_pushinteger(L, hash);
 
 	return 1;
 }
@@ -5061,6 +5078,7 @@ static const struct luaL_Reg credocument_meth[] = {
     /* --- control methods ---*/
     {"isBuiltDomStale", isBuiltDomStale},
     {"isVerticalText", isVerticalText},
+    {"setVertColumnTopPrefs", setVertColumnTopPrefs},
     {"resetVertBleedCounters", resetVertBleedCounters},
     {"getVertBleedStats", getVertBleedStats},
     {"resetVertCharOverlapCounters", resetVertCharOverlapCounters},
